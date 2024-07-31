@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Car {
+  id                      Int        @id @default(autoincrement())
+  brand                   String
+  model                   String
+  kw                      Int
+  motor                   String     @default("any")
+  combustion              String
+  transmission            String
+  drive                   String     @default("FWD")
+  eqLevel                 String
+  calculated_buying_price Int
+  margin                  Int
+  sales_price             Int
+  target_country          String
+  discount                Float
+  target_market_price     Int
+  prices                  CarPrice[]
+}
+
+model Country {
+  id       Int        @id @default(autoincrement())
+  name     String
+  abbreviation String
+  currency String     @default("Euro")
+  prices   CarPrice[]
+}
+
+model CarPrice {
+  id                            Int     @id @default(autoincrement())
+  carId                         Int
+  car                           Car     @relation(fields: [carId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  countryId                     Int
+  country                       Country @relation(fields: [countryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  price                         Float?  @default(0)
+  price_in_EUR                  Float   @default(0)
+  discount_on_NCP               Float   @default(0)
+  needed_discount_percentage    Float   @default(0)
+  available_discount_percentage Float   @default(0)
+  additional_discount_needed    Float   @default(0)
+}
