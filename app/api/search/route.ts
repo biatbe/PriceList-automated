@@ -1,9 +1,8 @@
 import puppeteer from 'puppeteer';
 
-const url = `https://network4cars.autoconfigurator.eu`;
-
-const email = process.env.EMAIL!
-const password = process.env.PASSWORD!
+const url = process.env.URL!;
+const email = process.env.EMAIL!;
+const password = process.env.PASSWORD!;
 
 const countryMapping = new Map([['be', 'b'], ['de', 'd'], ['fr', 'f'], ['cz', 'cz'], ['nl', 'nl'], ['hu', 'h'], ['it', 'i'], ['pl', 'pl'], ['pt', 'p'], ['ro', 'ro']])
 
