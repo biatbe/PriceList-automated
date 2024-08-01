@@ -5,7 +5,7 @@ import Popup from 'reactjs-popup';
 import {XMarkIcon} from '@heroicons/react/24/outline';
 import {Tooltip} from "@nextui-org/tooltip";
 
-export default function CarsPopup({onFormSubmit} : {onFormSubmit : any}) {
+export default function CarsPopup({onFormSubmit, countries} : {onFormSubmit : any, countries : string[]}) {
   // State for whether the popup is open
   const [isOpen, setIsOpen] = useState(false);
   const [brand, setBrand] = useState('');
@@ -16,37 +16,40 @@ export default function CarsPopup({onFormSubmit} : {onFormSubmit : any}) {
   const [transmission, setTransmission] = useState('A');
   const [drive, setDrive] = useState('FWD');
   const [eqLevel, setEqLevel] = useState('');
-  const [calculatedBuyingPrice, setCalculatedBuyingPrice] = useState(0);
-  const [margin, setMargin] = useState(0);
-  const [salesPrice, setSalesPrice] = useState(0);
   const [country, setCountry] = useState('DE');
   const [discount, setDiscount] = useState(0);
-  const [targetMarketPrice, setTargetMarketPrice] = useState(0);
   const margin_percentage = 7;
 
-  const handleCreate = async () => {
+  const searchCarPrice = async (): Promise<Map<string, number>> => {
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({country, brand, model, combustion, transmission, drive, power, motor, eqLevel}),
+        body: JSON.stringify({country, brand, model, combustion, transmission, drive, power, motor, eqLevel, countries}),
       });
 
-      const targetPrice = await response.json();
-      setTargetMarketPrice(targetPrice!);
-    } catch (error) { 
-      // Handle network error
-      console.error('Network error:', error);
+      const countryPrices : Map<string, number> = await response.json();
+      return countryPrices;
+    } catch (error) {
+      console.error('Failed to search car price: ', error);
+      return new Map([[country, 0]]);
     }
-    
-    if (targetMarketPrice != 0) {
-      setSalesPrice((1 - discount / 100) * targetMarketPrice);
-      setMargin(salesPrice - (salesPrice/ (1 + margin_percentage/100)));
-      setCalculatedBuyingPrice(salesPrice /  margin);
-    }
+  }
+
+  const createCarInput = async (countryPrices : Map<string, number>) => {
     try {
+      let salesPrice = 0;
+      let margin = 0;
+      let buyingPrice = 0;
+      let targetPrice = countryPrices.get(country);
+      if (targetPrice != 0) {
+        salesPrice = (1 - discount / 100) * targetPrice!;
+        margin = salesPrice - (salesPrice/ (1 + margin_percentage/100));
+        buyingPrice = salesPrice - margin;
+      }
+
       // Send request to save the process to the database
       const response = await fetch('/api/cars', {
         method: 'POST',
@@ -54,7 +57,7 @@ export default function CarsPopup({onFormSubmit} : {onFormSubmit : any}) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({brand, model, power, motor, combustion, transmission, drive,
-           eqLevel, country, discount, calculatedBuyingPrice, margin, salesPrice, targetMarketPrice}),
+          eqLevel, country, discount, buyingPrice, margin, salesPrice, targetPrice, countryPrices: countryPrices}),
       });
 
       if (response.ok) {
@@ -63,12 +66,17 @@ export default function CarsPopup({onFormSubmit} : {onFormSubmit : any}) {
       } else {
         console.error('Failed to save car!');
       }
-    } catch (error) {
+    } catch (error) { 
       // Handle network error
       console.error('Network error:', error);
     }
-  };
+  }
 
+  const handleCreate = async () => {
+    const targetPrice = await searchCarPrice();
+    console.log(targetPrice);
+    await createCarInput(targetPrice);
+  };
 
   // sets state to true causing the popup to open
   const openModal = () => {

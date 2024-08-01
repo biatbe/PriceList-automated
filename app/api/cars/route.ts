@@ -19,8 +19,10 @@ export async function GET() {
 export async function POST(request: Request) {
 
     const {brand, model, power, motor, combustion, transmission, drive,
-         eqLevel, country, discount, calculated_buying_price, margin,
-          sales_price, target_market_price } = await request.json();
+         eqLevel, country, discount, buyingPrice, margin,
+          salesPrice, targetPrice, countryPrices } = await request.json();
+
+    const countryMapping = new Map([['be', 'b'], ['de', 'd'], ['fr', 'f'], ['cz', 'cz'], ['nl', 'nl'], ['hu', 'h'], ['it', 'i'], ['pl', 'pl'], ['pt', 'p'], ['ro', 'ro']]);
 
     try {
 
@@ -36,21 +38,21 @@ export async function POST(request: Request) {
                 transmission: transmission,
                 drive: drive,
                 eqLevel: eqLevel,
-                calculated_buying_price: calculated_buying_price ?? 0,
-                margin: margin ?? 0,
-                sales_price: sales_price ?? 0,
+                calculated_buying_price: buyingPrice,
+                margin: margin,
+                sales_price: salesPrice,
                 target_country: country,
                 discount: discount,
-                target_market_price: target_market_price ?? 0,
+                target_market_price: targetPrice,
                 prices: {
                     create: countries.map((country) => ({
                         countryId: country.id,
-                        price: country.currency !== 'Euro' ? 0 : null, // replace `someCalculatedPrice` with your price calculation logic
-                        //price_in_EUR: calculated_buying_price ?? 0, // assuming price_in_EUR is equivalent to calculated_buying_price for simplicity
-                        //discount_on_NCP: discount ?? 0,
-                        //needed_discount_percentage: 0, // set appropriate value
-                        //available_discount_percentage: 0, // set appropriate value
-                        //additional_discount_needed: 0 // set appropriate value
+                        price: country.currency !== 'Euro' ? countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) : null, // replace `someCalculatedPrice` with your price calculation logic
+                        price_in_EUR: country.currency == 'Euro' ? countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) : countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) / 20, // assuming price_in_EUR is equivalent to calculated_buying_price for simplicity
+                        discount_on_NCP: 1 - (countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) / targetPrice),
+                        needed_discount_percentage: -(buyingPrice - countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())))/countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())),
+                        available_discount_percentage: 0,
+                        additional_discount_needed: (-(buyingPrice - countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())))/countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) - 0)*countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase()))
                     }))
                 }
             }

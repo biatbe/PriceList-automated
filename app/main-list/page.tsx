@@ -9,6 +9,7 @@ import DataTable from 'datatables.net-dt';
 export default function PriceList() {
 
     const [countries, setCountries] = useState<Country[]>([]);
+    const countriesAbb = countries.map((country) => country.abbreviation);
     const [cars, setCars] = useState<Car[]>([]);
     const [refresh, setRefresh] = useState(false);
     const tableRef = useRef(null);
@@ -30,6 +31,7 @@ export default function PriceList() {
             }
             dataTableRef.current = new DataTable('#carPrices', {
                 order: [[0, 'asc'], [1, 'asc'], [2, 'asc'], [3, 'asc'], [5, 'asc'], [6, 'asc'], [7, 'asc']],
+                pageLength: 100,
             });
         }
     }, [cars, countries, refresh]);
@@ -42,7 +44,7 @@ export default function PriceList() {
         <>
             <div>
                 <div className="mt-5 ml-2">
-                    <CarsPopup onFormSubmit={handleFormSubmit}/>
+                    <CarsPopup onFormSubmit={handleFormSubmit} countries={countriesAbb}/>
                 </div>
                 <div className="flex mt-2">
                     <table id="carPrices" ref={tableRef}>
@@ -78,7 +80,7 @@ export default function PriceList() {
                         </thead>
                         <tbody>
                             {cars.length > 0 && cars.map((car : Car) => (
-                                <tr key={car.id}>
+                                <tr className="odd:bg-slate-200 even:bg-slate-50" key={car.id}>
                                     <td>{car.brand}</td>
                                     <td>{car.model}</td>
                                     <td>{car.kw}</td>
