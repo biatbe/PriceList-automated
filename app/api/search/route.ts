@@ -1,4 +1,5 @@
-import PriceList from '@/app/main-list/page';
+
+import { NextResponse } from 'next/server';
 import puppeteer, { BrowserEvent } from 'puppeteer';
 
 // url, email and password are stored in the .env file
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     try {
         // Launch puppeteer
         const browser = await puppeteer.launch({
-            headless: false,
+            headless: true,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -36,7 +37,9 @@ export async function POST(req: Request) {
         await page.click('.btn-primary');
         if (countryMapping.has(country.toLowerCase()) === false) {
             countryPrice.set(country.toLowerCase(), 0);
-            return Response.json(countryPrice);
+            console.log(countryPrice);
+            await browser.close();
+            return NextResponse.json(JSON.stringify(Object.fromEntries(countryPrice)));
         }
 
         // We choose the country we want to search in
@@ -135,46 +138,72 @@ export async function POST(req: Request) {
         }
 
         // Convert the countryMapping Map to a plain object
+        // Important as page.evaluate can only use this or array
         const countryMappingObj = Object.fromEntries(countryMapping);
 
-        await page.evaluate((countries : string[], countryMapping: {[key: string]: string}, eqLevel: string) => {
+        for (const localCountry of countries) {
+            // Wait for the main column to load
+            await page.waitForSelector('#maincolumn');
 
-            countries.forEach(async (country: string) => {
-                console.log(country.toLowerCase());
-                console.log(countryMapping[country.toLowerCase()].toUpperCase());
-                const checkBox = document.querySelector(`input[value="${countryMapping[country.toLowerCase()].toUpperCase()}"]`);
-                console.log(checkBox);
+            // Select the checkbox for the current country
+            await page.evaluate((localCountry, countryMapping) => {
+                const countryKey = countryMapping[localCountry.toLowerCase()].toUpperCase();
+                const checkBox = document.querySelector(`input[value="${countryKey}"]`);
                 if (checkBox) {
-                    (checkBox as HTMLInputElement).click();
+                    (checkBox as HTMLElement).click();
                 }
-                console.log('got here3');
-                await page.waitForSelector('div.column.vehicle');
-                const divs = document.querySelectorAll('div.column.vehicle');
-                divs.forEach((div: any) => {
-                    const specs = div.querySelector('div.row.specs');
-                    const spans = specs.querySelectorAll('span.row.odd');
-                    const localEqLevel = spans[1];
-                    if (localEqLevel.toLowerCase().contains(eqLevel.toLowerCase())) {
-                        const price = spans[11].querySelector('b');
-                        if (price) {
-                            const priceText = price.textContent;
-                            countryPrice.set(country.toLowerCase(), priceText ? parseInt(priceText.replace('.', '')) : null);
+            }, localCountry, countryMappingObj);
+
+            await page.waitForSelector('div.column.vehicle');
+    
+            // Evaluate the checkboxes and prices within the browser context
+            const price : number = await page.evaluate(async (localCountry: string, countryMapping: {[key: string]: string}, eqLevel: string) => {
+                const countryKey = countryMapping[localCountry.toLowerCase()].toUpperCase();
+                const checkBox = document.querySelector(`input[value="${countryKey}"]`);
+    
+                if (checkBox) {
+                    const divs = document.querySelectorAll('div.column.vehicle');
+                    for (const div of divs) {
+                        const specs = div.querySelector('div.row.specs');
+                        const spans = specs!.querySelectorAll('span.row.odd');
+                        const localEqLevel = spans[1];
+    
+                        if (localEqLevel.textContent!.toLowerCase().includes(eqLevel.toLowerCase())) {
+                            const priceElement = spans[11].querySelector('b');
+                            if (priceElement) {
+                                const priceText = priceElement.textContent;
+                                return priceText ? parseInt(priceText.replace('.', '')) : 0;
+                            }
                         }
                     }
-                })
-                if (checkBox) {
-                    (checkBox as HTMLInputElement).click();
+                    return 0;
                 }
-            });
-        }, countries, countryMappingObj, eqLevel);
+                return 0;
+            }, localCountry, countryMappingObj, eqLevel);
 
-        //await browser.close();
-        return Response.json(countryPrice);
+            countryPrice.set(localCountry.toLowerCase(), price);
+
+            // Deselect the checkbox for the current country
+            await page.evaluate((localCountry, countryMapping) => {
+                const countryKey = countryMapping[localCountry.toLowerCase()].toUpperCase();
+                const checkBox = document.querySelector(`input[value="${countryKey}"]`);
+                if (checkBox) {
+                    (checkBox as HTMLElement).click();
+                }
+            }, localCountry, countryMappingObj);
+
+            // Wait a bit before processing the next country
+            await new Promise(r => setTimeout(r, 2000));
+        };
+        console.log(countryPrice);
+        await browser.close();
+        return NextResponse.json(JSON.stringify(Object.fromEntries(countryPrice)));
 
     } catch (error) {   
         console.error(`Error while searching for car in ${country}:`, error);
         countryPrice.set(country.toLowerCase(), 0);
-        return Response.json(countryPrice);
+        console.log(countryPrice);
+        return NextResponse.json(JSON.stringify(Object.fromEntries(countryPrice)));
     }
 
 }

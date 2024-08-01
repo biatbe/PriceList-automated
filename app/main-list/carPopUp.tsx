@@ -20,7 +20,7 @@ export default function CarsPopup({onFormSubmit, countries} : {onFormSubmit : an
   const [discount, setDiscount] = useState(0);
   const margin_percentage = 7;
 
-  const searchCarPrice = async (): Promise<Map<string, number>> => {
+  const searchCarPrice = async () => {
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
@@ -30,41 +30,48 @@ export default function CarsPopup({onFormSubmit, countries} : {onFormSubmit : an
         body: JSON.stringify({country, brand, model, combustion, transmission, drive, power, motor, eqLevel, countries}),
       });
 
-      const countryPrices : Map<string, number> = await response.json();
-      return countryPrices;
+      if (response.ok) {
+        let countryPrices : any = await response.json();
+        createCarInput(countryPrices);
+      } else {
+        console.error("Error searching car!");
+      }
     } catch (error) {
       console.error('Failed to search car price: ', error);
-      return new Map([[country, 0]]);
     }
-  }
+  };
 
-  const createCarInput = async (countryPrices : Map<string, number>) => {
+  const createCarInput = async (countryPrices : any) => {
+    console.log(countryPrices);
     try {
-      let salesPrice = 0;
-      let margin = 0;
-      let buyingPrice = 0;
-      let targetPrice = countryPrices.get(country);
-      if (targetPrice != 0) {
-        salesPrice = (1 - discount / 100) * targetPrice!;
-        margin = salesPrice - (salesPrice/ (1 + margin_percentage/100));
-        buyingPrice = salesPrice - margin;
-      }
+      if (countryPrices) { 
+        const countryObject = JSON.parse(countryPrices);
+        let salesPrice = 0;
+        let margin = 0;
+        let buyingPrice = 0;
+        let targetPrice = countryObject[country.toLowerCase()];
+        if (targetPrice != 0) {
+          salesPrice = (1 - discount / 100) * targetPrice!;
+          margin = salesPrice - (salesPrice/ (1 + margin_percentage/100));
+          buyingPrice = salesPrice - margin;
+        }
 
-      // Send request to save the process to the database
-      const response = await fetch('/api/cars', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({brand, model, power, motor, combustion, transmission, drive,
-          eqLevel, country, discount, buyingPrice, margin, salesPrice, targetPrice, countryPrices: countryPrices}),
-      });
-
-      if (response.ok) {
-        console.log('Car saved successfully!', response.json());
-        onFormSubmit();
-      } else {
-        console.error('Failed to save car!');
+        // Send request to save the process to the database
+        const response = await fetch('/api/cars', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({brand, model, power, motor, combustion, transmission, drive,
+            eqLevel, country, discount, buyingPrice, margin, salesPrice, targetPrice, countryPrices: countryPrices}),
+        });
+      
+        if (response.ok) {
+          console.log('Car saved successfully!', response.json());
+          onFormSubmit();
+        } else {
+          console.error('Failed to save car!');
+        }
       }
     } catch (error) { 
       // Handle network error
@@ -73,10 +80,8 @@ export default function CarsPopup({onFormSubmit, countries} : {onFormSubmit : an
   }
 
   const handleCreate = async () => {
-    const targetPrice = await searchCarPrice();
-    console.log(targetPrice);
-    await createCarInput(targetPrice);
-  };
+    await searchCarPrice();
+  }
 
   // sets state to true causing the popup to open
   const openModal = () => {

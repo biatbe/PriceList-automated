@@ -27,6 +27,8 @@ export async function POST(request: Request) {
     try {
 
         const countries = await prisma.country.findMany();
+        console.log( countries);
+        console.log( countryPrices);
 
         const car = await prisma.car.create({
             data: {
@@ -47,12 +49,12 @@ export async function POST(request: Request) {
                 prices: {
                     create: countries.map((country) => ({
                         countryId: country.id,
-                        price: country.currency !== 'Euro' ? countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) : null, // replace `someCalculatedPrice` with your price calculation logic
-                        price_in_EUR: country.currency == 'Euro' ? countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) : countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) / 20, // assuming price_in_EUR is equivalent to calculated_buying_price for simplicity
-                        discount_on_NCP: 1 - (countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) / targetPrice),
-                        needed_discount_percentage: -(buyingPrice - countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())))/countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())),
+                        price: country.currency !== 'Euro' ? countryPrices[country.abbreviation.toLowerCase()] : null, // replace `someCalculatedPrice` with your price calculation logic
+                        price_in_EUR: country.currency == 'Euro' ? countryPrices[country.abbreviation.toLowerCase()] : countryPrices[country.abbreviation.toLowerCase()] / 20, // assuming price_in_EUR is equivalent to calculated_buying_price for simplicity
+                        discount_on_NCP: 1 - (countryPrices[country.abbreviation.toLowerCase()] / targetPrice),
+                        needed_discount_percentage: -(buyingPrice - countryPrices[country.abbreviation.toLowerCase()])/countryPrices[country.abbreviation.toLowerCase()],
                         available_discount_percentage: 0,
-                        additional_discount_needed: (-(buyingPrice - countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())))/countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase())) - 0)*countryPrices.get(countryMapping.get(country.abbreviation.toLowerCase()))
+                        additional_discount_needed: (-(buyingPrice - countryPrices[country.abbreviation.toLowerCase()])/countryPrices[country.abbreviation.toLowerCase()] - 0)*countryPrices[country.abbreviation.toLowerCase()]
                     }))
                 }
             }

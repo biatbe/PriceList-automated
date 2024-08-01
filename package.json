@@ -21,7 +21,7 @@
     "framer-motion": "^11.3.19",
     "jquery": "^3.7.1",
     "next": "14.2.5",
-    "puppeteer": "^22.14.0",
+    "puppeteer": "^22.15.0",
     "react": "^18",
     "react-dom": "^18",
     "reactjs-popup": "^2.0.6"
