@@ -20,6 +20,7 @@
     "datatables.net-dt": "^2.1.2",
     "framer-motion": "^11.3.19",
     "jquery": "^3.7.1",
+    "leva": "^0.9.35",
     "next": "14.2.5",
     "puppeteer": "^22.15.0",
     "react": "^18",

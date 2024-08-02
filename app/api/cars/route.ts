@@ -18,9 +18,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
 
-    const {brand, model, power, motor, combustion, transmission, drive,
-         eqLevel, country, discount, buyingPrice, margin,
-          salesPrice, targetPrice, countryPrices } = await request.json();
+    const {brand, model, type, doors, power, motor, combustion, transmission, drive,
+         eqLevel, country, discount, targetPrice, countryPrices } = await request.json();
 
     const countryMapping = new Map([['be', 'b'], ['de', 'd'], ['fr', 'f'], ['cz', 'cz'], ['nl', 'nl'], ['hu', 'h'], ['it', 'i'], ['pl', 'pl'], ['pt', 'p'], ['ro', 'ro']]);
 
@@ -34,28 +33,28 @@ export async function POST(request: Request) {
             data: {
                 brand: brand,
                 model: model,
+                type: type,
+                doors: doors,
                 kw: power,
                 motor: motor,
                 combustion: combustion,
                 transmission: transmission,
                 drive: drive,
                 eqLevel: eqLevel,
-                calculated_buying_price: buyingPrice,
-                margin: margin,
-                sales_price: salesPrice,
                 target_country: country,
                 discount: discount,
                 target_market_price: targetPrice,
                 prices: {
-                    create: countries.map((country) => ({
-                        countryId: country.id,
-                        price: country.currency !== 'Euro' ? countryPrices[country.abbreviation.toLowerCase()] : null, // replace `someCalculatedPrice` with your price calculation logic
-                        price_in_EUR: country.currency == 'Euro' ? countryPrices[country.abbreviation.toLowerCase()] : countryPrices[country.abbreviation.toLowerCase()] / 20, // assuming price_in_EUR is equivalent to calculated_buying_price for simplicity
-                        discount_on_NCP: 1 - (countryPrices[country.abbreviation.toLowerCase()] / targetPrice),
-                        needed_discount_percentage: -(buyingPrice - countryPrices[country.abbreviation.toLowerCase()])/countryPrices[country.abbreviation.toLowerCase()],
-                        available_discount_percentage: 0,
-                        additional_discount_needed: (-(buyingPrice - countryPrices[country.abbreviation.toLowerCase()])/countryPrices[country.abbreviation.toLowerCase()] - 0)*countryPrices[country.abbreviation.toLowerCase()]
-                    }))
+                    create: countries.map((country) => {
+                        const countryAbbreviation = country.abbreviation.toLowerCase();
+                        const price = countryPrices[countryAbbreviation] || 0;
+
+                        return {
+                            countryId: country.id,
+                            price: country.currency !== 'Euro' ? price : null, 
+                            available_discount_percentage: 0,
+                        }
+                    })
                 }
             }
         });

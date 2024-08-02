@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import puppeteer, { BrowserEvent } from 'puppeteer';
+import puppeteer from 'puppeteer';
 
 // url, email and password are stored in the .env file
 // hidden on purpose
@@ -11,9 +11,12 @@ const password = process.env.PASSWORD!;
 const countryMapping = new Map([['be', 'b'], ['de', 'd'], ['fr', 'f'], ['cz', 'cz'], ['nl', 'nl'], ['hu', 'h'], ['it', 'i'], ['pl', 'pl'], ['pt', 'p'], ['ro', 'ro']]);
 const countryPrice = new Map();
 
+const typeMappings = new Map([['hatchback', 'hatchback'], ['sw', 'wagon'], ['suv','sport utility vehicle'], ['coupe', 'coupe'], ['cabriolet', 'convertible'], ['sedan', 'sedan']]);
+
 export async function POST(req: Request) {
-    const {country, brand, model, combustion, transmission, drive, power, motor, eqLevel, countries } :
-        {country: string; brand: string; model: string; combustion: string; transmission: string; drive: string; power: number; motor: string; eqLevel: string, countries: string[]}
+    const {country, brand, model, type, doors, combustion, transmission, drive, power, motor, eqLevel, countries } :
+        {country: string; brand: string; model: string; type: string; doors: number; combustion: string;
+             transmission: string; drive: string; power: number; motor: string; eqLevel: string, countries: string[]}
      = await req.json();
 
     try {
@@ -36,10 +39,8 @@ export async function POST(req: Request) {
         await page.type('#password', password);
         await page.click('.btn-primary');
         if (countryMapping.has(country.toLowerCase()) === false) {
-            countryPrice.set(country.toLowerCase(), 0);
-            console.log(countryPrice);
             await browser.close();
-            return NextResponse.json(JSON.stringify(Object.fromEntries(countryPrice)));
+            return NextResponse.json(JSON.stringify(Object.fromEntries(new Map([[country, 0]]))));
         }
 
         // We choose the country we want to search in
@@ -87,29 +88,52 @@ export async function POST(req: Request) {
         await page.waitForSelector('#tranmissionSelect');
         await page.click(`#tranmissionSelect input[value="${fuel}"]`);
 
-        await page.waitForSelector('.voertuig');
+        await page.waitForSelector('div.thumbWrapper');
+
+        // Convert the typemapping Map to a plain object
+        // Important as page.evaluate can only use this or array
+        const typeMappingObj = Object.fromEntries(typeMappings);
 
         // Selects the exact car we are looking for
-        await page.evaluate((motor, eqLevel, power) => {
-            const car_options_arr = Array.from(document.querySelectorAll('.voertuig'));
+        await page.evaluate((motor, eqLevel, power, type, doors, typeMapping) => {
+            const types_spans = Array.from(document.querySelectorAll('div.thumbWrapper span'));
+            const cars = Array.from(document.querySelectorAll('div.vehicleSelect'));
+            let index = -1;
+            index = types_spans.findIndex(type_text => type_text.textContent?.includes(typeMapping[type])
+                && type_text.textContent?.includes(doors.toString()));
+            console.log(index);
+            if (index == -1) {
+                console.log('No car found matching the criteria'); 
+                return NextResponse.json(JSON.stringify(Object.fromEntries(new Map([[country.toLowerCase(), 0]]))));
+            }
+            const car_options_arr = Array.from(cars[index].querySelectorAll('.voertuig'));
             
             car_options_arr.forEach(car_option => {
                 const input = car_option.querySelector('#vehicleID');
                 const typeSpan = car_option.querySelector('span.type');
                 const typeDetailsSpan = car_option.querySelector('span.typeDetails');
                 const motorDetails = motor.split(' ');
+                let found = false;
 
                 if (input && typeSpan && typeDetailsSpan) {
-
                     const motorDetailsIncluded = motorDetails.every(detail => typeDetailsSpan!.textContent?.includes(detail.toUpperCase()));
-                    if (typeSpan!.textContent?.includes(String(power))
+                    if (eqLevel == '') {
+                        if (typeSpan!.textContent?.includes(String(power)) && !found
+                        && motorDetailsIncluded) {
+                            console.log("found no eq");
+                            found = true;
+                            (input! as HTMLElement).click();
+                        }
+                    } else if (typeSpan!.textContent?.includes(String(power)) && !found
                         && motorDetailsIncluded
                         && typeDetailsSpan!.textContent?.includes(eqLevel.toUpperCase())) {
+                            console.log("found eq");
+                            found = true;
                             (input! as HTMLElement).click();
                     }
                 }
             })
-        }, motor, eqLevel, power);
+        }, motor, eqLevel, power, type, doors, typeMappingObj);
 
         await page.waitForSelector('#chosen');
 
@@ -121,7 +145,7 @@ export async function POST(req: Request) {
                     const price = spans![11].querySelector('b');
                     if (price) {
                         const priceText = price.textContent;
-                        return priceText ? parseInt(priceText.replace('.', '')) : null;
+                        return priceText ? parseInt(priceText.replaceAll('.', '')) : null;
                     }
                 }
             }
@@ -164,6 +188,9 @@ export async function POST(req: Request) {
                 if (checkBox) {
                     const divs = document.querySelectorAll('div.column.vehicle');
                     for (const div of divs) {
+                        if (div.hasAttribute('id') && div.getAttribute('id')!.includes('chosen')) {
+                            continue;
+                        }
                         const specs = div.querySelector('div.row.specs');
                         const spans = specs!.querySelectorAll('span.row.odd');
                         const localEqLevel = spans[1];
@@ -172,7 +199,7 @@ export async function POST(req: Request) {
                             const priceElement = spans[11].querySelector('b');
                             if (priceElement) {
                                 const priceText = priceElement.textContent;
-                                return priceText ? parseInt(priceText.replace('.', '')) : 0;
+                                return priceText ? parseInt(priceText.replaceAll('.', '')) : 0;
                             }
                         }
                     }
@@ -201,9 +228,7 @@ export async function POST(req: Request) {
 
     } catch (error) {   
         console.error(`Error while searching for car in ${country}:`, error);
-        countryPrice.set(country.toLowerCase(), 0);
-        console.log(countryPrice);
-        return NextResponse.json(JSON.stringify(Object.fromEntries(countryPrice)));
+        return NextResponse.json(JSON.stringify(Object.fromEntries(new Map([[country.toLowerCase(), 0]]))));
     }
 
 }
