@@ -9,11 +9,32 @@ html, body {
 }
 
 table, td, tr, th {
-  border: 1px solid black;
+  border: 1px solid rgb(223, 223, 223);
   padding: 0.5rem;
   white-space: nowrap;
 }
 
 input {
   border: 1px solid black;
+}
+
+:root {
+  --primary: #f1f1f1;
+  --secondary: rgba(95, 95, 95, 0.4);
+  --tertiary: rgba(122, 122, 122, 0.6);
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--secondary);
+  border-radius: 14px;
+  border: 3px solid var(--primary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--tertiary);
 }

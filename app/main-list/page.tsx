@@ -5,6 +5,7 @@ import React, { useRef } from "react";
 import { useEffect, useState } from "react"
 import CarsPopup from "./carPopUp";
 import DataTable from 'datatables.net-dt';
+import '@/app/css_modules/table.css';
 
 export default function PriceList() {
     const [countries, setCountries] = useState<Country[]>([]);
@@ -46,13 +47,13 @@ export default function PriceList() {
                 <div className="mt-5 ml-2">
                     <CarsPopup onFormSubmit={handleFormSubmit} countries={countriesAbb}/>
                 </div>
-                <div className="flex mt-2">
+                <div className="mt-2 mx-10">
                     <table className="text-xs" id="carPrices" ref={tableRef}>
                         <thead>
                             <tr>
                                 <th>Brand</th>
                                 <th>Model</th>
-                                <th>Power (KW)</th>
+                                <th>Power (KW)</th> 
                                 <th>Motor</th>
                                 <th>Type</th>
                                 <th>Doors</th>
@@ -94,7 +95,7 @@ export default function PriceList() {
 
 
                                 return (
-                                    <tr className="odd:bg-slate-200 even:bg-slate-50" key={car.id}>
+                                    <tr className="odd:bg-white even:bg-gray-200" key={car.id}>
                                         <td>{car.brand}</td>
                                         <td>{car.model}</td>
                                         <td>{car.kw}</td>

@@ -33,8 +33,8 @@ model Car {
 
 model Country {
   id       Int        @id @default(autoincrement())
-  name     String
-  abbreviation String
+  name     String     @unique
+  abbreviation String @unique
   currency String     @default("Euro")
   prices   CarPrice[]
 }
@@ -47,4 +47,5 @@ model CarPrice {
   country                       Country @relation(fields: [countryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   price                         Float?  @default(0)
   available_discount_percentage Float   @default(0)
+  additional_notes              String  @default("")
 }
