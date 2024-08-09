@@ -184,7 +184,7 @@ export default function CarsPopup({onFormSubmit, countries} : {onFormSubmit : an
                     </div>
                     <div className='mb-4'>
                       <Tooltip showArrow={true} content="The option choosen in auto-configurator">
-                        <label htmlFor="combustion-select" className='underline decoration-dashed'>Combustion:</label>
+                        <label htmlFor="combustion-select" className='underline decoration-dashed underline-offset-2'>Combustion:</label>
                       </Tooltip>
                       <select id="combustion-select" value={combustion} onChange={(e) => setCombustion(e.target.value)} className='border-black border rounded-lg p-1 ml-2'>
                         <option value="Petrol">Petrol</option>

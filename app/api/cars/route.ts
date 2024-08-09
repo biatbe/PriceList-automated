@@ -1,7 +1,15 @@
+import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function GET() {
+
+    const session = await auth();
+    if (!session?.user?.id) {
+        console.error('User is not authenticated');
+        return NextResponse.json({error: 'Invalid user', status: 401});
+    }
+
     try {
         const cars = await prisma.car.findMany({
             include: {
@@ -17,31 +25,32 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+    const session = await auth();
+    if (!session?.user?.id) {
+        console.error('User is not authenticated');
+        return NextResponse.json({error: 'Invalid user', status: 401});
+    }
 
     const {brand, model, type, doors, power, motor, combustion, transmission, drive,
          eqLevel, country, discount, targetPrice, countryPrices } = await request.json();
 
-    const countryMapping = new Map([['be', 'b'], ['de', 'd'], ['fr', 'f'], ['cz', 'cz'], ['nl', 'nl'], ['hu', 'h'], ['it', 'i'], ['pl', 'pl'], ['pt', 'p'], ['ro', 'ro']]);
-
     try {
 
         const countries = await prisma.country.findMany();
-        console.log( countries);
-        console.log( countryPrices);
 
         const car = await prisma.car.create({
             data: {
-                brand: brand,
-                model: model,
-                type: type,
+                brand: brand.toUpperCase(),
+                model: model.toUpperCase(),
+                type: type.toUpperCase(),
                 doors: doors,
                 kw: power,
-                motor: motor,
-                combustion: combustion,
-                transmission: transmission,
-                drive: drive,
-                eqLevel: eqLevel,
-                target_country: country,
+                motor: motor.toUpperCase(),
+                combustion: combustion.toUpperCase(),
+                transmission: transmission.toUpperCase(),
+                drive: drive.toUpperCase(),
+                eqLevel: eqLevel.toUpperCase(),
+                target_country: country.toUpperCase(),
                 discount: discount,
                 target_market_price: targetPrice,
                 prices: {

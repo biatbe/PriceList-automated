@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.1.5",
+    "@nextui-org/react": "^2.4.6",
     "@nextui-org/system": "^2.2.5",
     "@nextui-org/theme": "^2.2.9",
     "@nextui-org/tooltip": "^2.0.39",
@@ -22,6 +23,7 @@
     "jquery": "^3.7.1",
     "leva": "^0.9.35",
     "next": "14.2.5",
+    "next-auth": "^5.0.0-beta.20",
     "puppeteer": "^22.15.0",
     "react": "^18",
     "react-dom": "^18",
